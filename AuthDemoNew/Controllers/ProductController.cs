@@ -14,13 +14,20 @@ namespace Catalog.Api.Controllers;
 public class ProductsController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
+    private readonly IProductService _productService;
+    private readonly ILogger<ProductsController> _logger;
+
+
 
     public ProductsController(
-        ApplicationDbContext context)
+        ApplicationDbContext context, IProductService productService, ILogger<ProductsController> logger)
     {
         _context = context;
+        _productService = productService;
+        _logger = logger;
     }
-    
+
+
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
@@ -102,5 +109,22 @@ public class ProductsController : ControllerBase
         await _context.SaveChangesAsync();
 
         return NoContent();
+    }
+
+
+    [HttpGet("search")]
+    public async Task<IActionResult> SearchByCategory(
+    [FromQuery] string category)
+    {
+        if (string.IsNullOrWhiteSpace(category))
+        {
+            return BadRequest("Category is required.");
+        }
+
+        var products = await _context.Products
+            .Where(p => p.Category == category)
+            .ToListAsync();
+
+        return Ok(products);
     }
 }

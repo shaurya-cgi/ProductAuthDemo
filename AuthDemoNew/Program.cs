@@ -59,7 +59,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 
 builder.Services.AddSingleton<JwtService>();
 
-
+builder.Services.AddScoped<IProductService, ProductService>();
 
 builder.Services.AddAuthentication(
     JwtBearerDefaults.AuthenticationScheme)
