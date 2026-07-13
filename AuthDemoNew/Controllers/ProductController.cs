@@ -1,130 +1,94 @@
-﻿using AuthDemoNew.Data;
+﻿using System;
 using AuthDemoNew.Dtos;
 using AuthDemoNew.Models;
-using Catalog.Api.Dtos;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
-namespace Catalog.Api.Controllers;
+namespace AuthDemoNew.Controllers;
 
 [ApiController]
-[Route("api/products")]
-[Authorize]
-public class ProductsController : ControllerBase
+[Route("api/[controller]")]
+public class ProductController : ControllerBase
 {
-    private readonly ApplicationDbContext _context;
     private readonly IProductService _productService;
-    private readonly ILogger<ProductsController> _logger;
 
-
-
-    public ProductsController(
-        ApplicationDbContext context, IProductService productService, ILogger<ProductsController> logger)
+    public ProductController(IProductService productService)
     {
-        _context = context;
         _productService = productService;
-        _logger = logger;
     }
 
-
     [HttpGet]
-    public async Task<IActionResult> GetAll()
+    public async Task<ActionResult<List<Product>>> GetAll()
     {
-        var products = await _context.Products.ToListAsync();
-
+        var products = await _productService.GetAllAsync();
         return Ok(products);
     }
 
-    [HttpGet("{id:int}")]
-    public async Task<IActionResult> GetById(int id)
+    [HttpGet("{id}")]
+    public async Task<ActionResult<Product>> GetById(int id)
     {
-        var product =
-            await _context.Products.FindAsync(id);
-
+        var product = await _productService.GetByIdAsync(id);
         if (product == null)
-        {
             return NotFound();
-        }
 
         return Ok(product);
     }
 
-    [HttpPost]
-    public async Task<IActionResult> Create(
-    CreateProductDto dto)
+    [HttpGet("search")]
+    public async Task<ActionResult<List<Product>>> SearchByCategory([FromQuery] string category)
     {
+        var products = await _productService.SearchByCategoryAsync(category);
+        return Ok(products);
+    }
+
+    [HttpPost]
+    public async Task<ActionResult<Product>> Create([FromBody] CreateProductDto createDto)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
         var product = new Product
         {
-            Name = dto.Name,
-            Price = dto.Price,
-            Category = dto.Category
+            Name = createDto.Name,
+            Category = createDto.Category,
+            Price = createDto.Price,
+            Stock = createDto.Stock,
+            CreatedDate = DateTime.UtcNow
         };
 
-        _context.Products.Add(product);
-
-        await _context.SaveChangesAsync();
-
-        return CreatedAtAction(
-            nameof(GetById),
-            new { id = product.Id },
-            product);
+        var createdProduct = await _productService.CreateAsync(product);
+        return CreatedAtAction(nameof(GetById), new { id = createdProduct.Id }, createdProduct);
     }
 
-    [HttpPut("{id:int}")]
-    public async Task<IActionResult> Update(
-    int id,
-    UpdateProductDto dto)
+    [HttpPut("{id}")]
+    public async Task<IActionResult> Update(int id, [FromBody] UpdateProductDto updateDto)
     {
-        var product =
-            await _context.Products.FindAsync(id);
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
 
-        if (product == null)
-        {
+        var existingProduct = await _productService.GetByIdAsync(id);
+        if (existingProduct == null)
             return NotFound();
-        }
 
-        product.Name = dto.Name;
-        product.Price = dto.Price;
-        product.Category = dto.Category;
+        existingProduct.Name = updateDto.Name;
+        existingProduct.Category = updateDto.Category;
+        existingProduct.Price = updateDto.Price;
+        existingProduct.Stock = updateDto.Stock;
+        existingProduct.UpdatedDate = DateTime.UtcNow;
 
-        await _context.SaveChangesAsync();
+        var result = await _productService.UpdateAsync(existingProduct);
+        if (!result)
+            return BadRequest("Failed to update product");
 
         return NoContent();
     }
 
-    [HttpDelete("{id:int}")]
+    [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(int id)
     {
-        var product =
-            await _context.Products.FindAsync(id);
-
-        if (product == null)
-        {
+        var result = await _productService.DeleteAsync(id);
+        if (!result)
             return NotFound();
-        }
-
-        _context.Products.Remove(product);
-
-        await _context.SaveChangesAsync();
 
         return NoContent();
-    }
-
-
-    [HttpGet("search")]
-    public async Task<IActionResult> SearchByCategory(
-    [FromQuery] string category)
-    {
-        if (string.IsNullOrWhiteSpace(category))
-        {
-            return BadRequest("Category is required.");
-        }
-
-        var products = await _context.Products
-            .Where(p => p.Category == category)
-            .ToListAsync();
-
-        return Ok(products);
     }
 }

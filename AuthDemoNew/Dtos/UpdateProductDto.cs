@@ -1,10 +1,21 @@
-﻿namespace Catalog.Api.Dtos;
+﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
+
+namespace AuthDemoNew.Dtos;
 
 public class UpdateProductDto
 {
+    [Required(ErrorMessage = "Name is required")]
     public string Name { get; set; } = string.Empty;
 
+    [Required(ErrorMessage = "Category is required")]
+    public string Category { get; set; } = string.Empty;
+
+    [Required]
+    [Range(0.01, double.MaxValue, ErrorMessage = "Price must be greater than 0")]
     public decimal Price { get; set; }
 
-    public string Category { get; set; } = string.Empty;
+    [Required]
+    [Range(0, int.MaxValue, ErrorMessage = "Stock must be 0 or greater")]
+    public int Stock { get; set; }
 }
