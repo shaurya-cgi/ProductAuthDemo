@@ -1,6 +1,0 @@
-@AuthDemoNew_HostAddress = http://localhost:5098
-
-GET {{AuthDemoNew_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###
